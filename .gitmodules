@@ -1,0 +1,3 @@
+[submodule "extern/quicly"]
+	path = extern/quicly
+	url = https://github.com/h2o/quicly.git
