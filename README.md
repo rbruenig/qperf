@@ -6,6 +6,8 @@ server
 ```
 ./qperf -s
 ```
+*Note*: The server looks for a TLS certificate and key in the current working dir named "server.crt" and "server.key" respectively. You can use a self signed certificate; the client doesn't validate it.
+
 
 client
 ```
