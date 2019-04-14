@@ -1,5 +1,6 @@
 # qperf
 A performance measurement tool for QUIC similar to iperf.
+Uses https://github.com/h2o/quicly 
 
 # basic usage and example output
 ```
