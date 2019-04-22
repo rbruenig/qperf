@@ -47,6 +47,8 @@ bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
         if(quicly_res != 0) {
             if(quicly_res != QUICLY_ERROR_FREE_CONNECTION) {
                 printf("quicly_send failed with code %i\n", quicly_res);
+            } else {
+                printf("connection closed\n");
             }
             return false;
         } else if(packet_count == 0) {

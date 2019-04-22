@@ -170,7 +170,7 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
 static void server_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *conn, int err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
-    printf("connection closed\n");
+
 }
 
 static void event_log(quicly_event_logger_t *_self, quicly_event_type_t type,
