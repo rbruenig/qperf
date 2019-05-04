@@ -220,7 +220,7 @@ int run_server(const char *cert, const char *key)
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
 
-    server_ctx = quicly_default_context;
+    server_ctx = quicly_spec_context;
     server_ctx.tls = get_tlsctx();
     server_ctx.stream_open = &stream_open;
     server_ctx.closed_by_peer = &closed_by_peer;
@@ -229,8 +229,7 @@ int run_server(const char *cert, const char *key)
     server_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
 
     server_ctx.event_log.mask =
-            (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_TLP) |
-            (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_RTO) |
+            (UINT64_C(1) << QUICLY_EVENT_TYPE_PTO) |
             (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_ACK_RECEIVED) |
             (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_CONGESTION) ;
     server_ctx.event_log.cb = &event_logger;

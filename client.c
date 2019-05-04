@@ -122,14 +122,13 @@ int run_client(const char *host, int runtime_s, bool ttfb_only)
     printf("running client with host=%s and runtime=%is\n", host, runtime_s);
     quit_after_first_byte = ttfb_only;
 
-    client_ctx = quicly_default_context;
+    client_ctx = quicly_spec_context;
     client_ctx.tls = get_tlsctx();
     client_ctx.stream_open = &stream_open;
     client_ctx.closed_by_peer = &closed_by_peer;
     client_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
-    client_ctx.transport_params.max_data *= 4;
 
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
