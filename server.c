@@ -53,7 +53,7 @@ static int udp_listen(struct addrinfo *addr)
 static inline quicly_conn_t *find_conn(struct sockaddr *sa, socklen_t salen, quicly_decoded_packet_t *packet)
 {
     for(size_t i = 0; i < num_conns; ++i) {
-        if(quicly_is_destination(conns[i], sa, salen, packet)) {
+        if(quicly_is_destination(conns[i], NULL, sa, packet)) {
             return conns[i];
         }
     }
@@ -78,17 +78,6 @@ static size_t remove_conn(size_t i)
     --num_conns;
     return i - 1;
 }
-
-//void server_report_cb(EV_P_ ev_timer *w, int revents)
-//{
-//    for(size_t i = 0; i < num_conns; ++i) {
-//        quicly_conn_t* conn = conns[i];
-//        quic_conn_meta *meta = *quicly_get_data(conn);
-//        printf("connection %zu second %i send window: %"PRIi64"\n", i, meta->report_second, meta->send_cwnd);
-//        meta->report_second++;
-//        fflush(stdout);
-//    }
-//}
 
 static void server_timeout_cb(EV_P_ ev_timer *w, int revents);
 
@@ -119,7 +108,7 @@ static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct 
     quicly_conn_t *conn = find_conn(sa, salen, packet);
     if(conn == NULL) {
         // new conn
-        int ret = quicly_accept(&conn, &server_ctx, sa, salen, packet, ptls_iovec_init(NULL, 0), &next_cid, NULL);
+        int ret = quicly_accept(&conn, &server_ctx, 0, sa, packet, NULL, &next_cid, NULL);
         if(ret != 0) {
             if(ret == QUICLY_TRANSPORT_ERROR_VERSION_NEGOTIATION) {
                 printf("quicly_accept failed with QUICLY_TRANSPORT_ERROR_VERSION_NEGOTIATION\n");
@@ -132,7 +121,7 @@ static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct 
         printf("got new connection\n");
         append_conn(conn);
     } else {
-        int ret = quicly_receive(conn, packet);
+        int ret = quicly_receive(conn, NULL, sa, packet);
         if(ret != 0 && ret != QUICLY_ERROR_PACKET_IGNORED) {
             fprintf(stderr, "quicly_receive returned %i\n", ret);
             exit(1);
@@ -170,50 +159,21 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
 static void server_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *conn, int err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
-
-}
-
-static void event_log(quicly_event_logger_t *_self, quicly_event_type_t type,
-                      const quicly_event_attribute_t *attributes, size_t num_attributes)
-{
-    // this is a hack to get the current send_cwnd of a quicly_conn_t
-    // this is necessary since quicly doesn't provide a quicly_get_send_cwnd(conn) method
-
-    int64_t cwnd = INT64_MAX;
-    int64_t master_id = INT64_MAX;
-
-    for (size_t i = 0; i != num_attributes; ++i) {
-        const quicly_event_attribute_t *attr = attributes + i;
-        switch(attr->type) {
-        case QUICLY_EVENT_ATTRIBUTE_CONNECTION:
-            master_id = attr->value.i;
-        case QUICLY_EVENT_ATTRIBUTE_CWND:
-            cwnd = attr->value.i;
-            break;
-        default:
-            break;
-        }
-        if(attr->type == QUICLY_EVENT_ATTRIBUTE_CWND) {
-            cwnd = attr->value.i;
-        }
-    }
-
-    if(cwnd == INT64_MAX || master_id == INT64_MAX) {
-        return;
-    }
-
-    for(size_t i = 0; i < num_conns; ++i) {
-        if(master_id == (int64_t)quicly_get_master_id(conns[i])->master_id) {
-            int64_t *send_cwnd = *quicly_get_data(conns[i]);
-            *send_cwnd = cwnd;
-            return;
-        }
+    if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
+        fprintf(stderr, "transport close:code=0x%" PRIx16 ";frame=%" PRIu64 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err),
+                frame_type, (int)reason_len, reason);
+    } else if (QUICLY_ERROR_IS_QUIC_APPLICATION(err)) {
+        fprintf(stderr, "application close:code=0x%" PRIx16 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err), (int)reason_len,
+                reason);
+    } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
+        fprintf(stderr, "stateless reset\n");
+    } else {
+        fprintf(stderr, "unexpected close:code=%d\n", err);
     }
 }
 
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
 static quicly_closed_by_peer_t closed_by_peer = {&server_on_conn_close};
-static quicly_event_logger_t event_logger = {&event_log};
 
 int run_server(const char *cert, const char *key)
 {
@@ -227,12 +187,6 @@ int run_server(const char *cert, const char *key)
     server_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
-
-    server_ctx.event_log.mask =
-            (UINT64_C(1) << QUICLY_EVENT_TYPE_PTO) |
-            (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_ACK_RECEIVED) |
-            (UINT64_C(1) << QUICLY_EVENT_TYPE_CC_CONGESTION) ;
-    server_ctx.event_log.cb = &event_logger;
 
     load_certificate_chain(server_ctx.tls, cert);
     load_private_key(server_ctx.tls, key);
@@ -259,10 +213,6 @@ int run_server(const char *cert, const char *key)
     ev_io_start(loop, &socket_watcher);
 
     ev_init(&server_timeout, &server_timeout_cb);
-
-//    ev_timer server_report_timer;
-//    ev_timer_init(&server_report_timer, &server_report_cb, 1, 1);
-//    ev_timer_start(loop, &server_report_timer);
 
     ev_run(loop, 0);
     return 0;

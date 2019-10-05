@@ -56,7 +56,9 @@ bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
         }
 
         for(size_t i = 0; i < packet_count; ++i) {
-            ssize_t bytes_sent = sendto(fd, packets[i]->data.base, packets[i]->data.len, 0, &packets[i]->sa, packets[i]->salen);
+            quicly_datagram_t *packet = packets[i];
+            ssize_t bytes_sent = sendto(fd, packet->data.base, packet->data.len, 0,
+                                        &packet->dest.sa, quicly_get_socklen(&packet->dest.sa));
             ctx->packet_allocator->free_packet(ctx->packet_allocator, packets[i]);
             if(bytes_sent == -1) {
                 perror("sendto failed");

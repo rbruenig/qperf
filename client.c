@@ -24,6 +24,7 @@ static quicly_cid_plaintext_t next_cid;
 static int64_t start_time = 0;
 static int64_t connect_time = 0;
 static bool quit_after_first_byte = false;
+static ptls_iovec_t resumption_token;
 
 void client_timeout_cb(EV_P_ ev_timer *w, int revents);
 
@@ -62,7 +63,7 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
             }
 
             // handle packet --------------------------------------------------
-            int ret = quicly_receive(conn, &packet);
+            int ret = quicly_receive(conn, NULL, &sa, &packet);
             if(ret != 0 && ret != QUICLY_ERROR_PACKET_IGNORED) {
                 fprintf(stderr, "quicly_receive returned %i\n", ret);
                 exit(1);
@@ -108,9 +109,13 @@ static void client_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *c
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
         fprintf(stderr, "transport close:code=0x%" PRIx16 ";frame=%" PRIu64 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err),
                 frame_type, (int)reason_len, reason);
-    } else {
+    } else if (QUICLY_ERROR_IS_QUIC_APPLICATION(err)) {
         fprintf(stderr, "application close:code=0x%" PRIx16 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err), (int)reason_len,
                 reason);
+    } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
+        fprintf(stderr, "stateless reset\n");
+    } else {
+        fprintf(stderr, "unexpected close:code=%d\n", err);
     }
 }
 
@@ -159,7 +164,7 @@ int run_client(const char *host, int runtime_s, bool ttfb_only)
     // start time
     start_time = client_ctx.now->cb(client_ctx.now);
 
-    int ret = quicly_connect(&conn, &client_ctx, host, sa, salen, &next_cid, 0, 0);
+    int ret = quicly_connect(&conn, &client_ctx, host, sa, NULL, &next_cid, resumption_token, 0, 0);
     assert(ret == 0);
     ++next_cid.master_id;
 
@@ -196,6 +201,7 @@ void quit_client()
 
     quicly_close(conn, 0, "");
     if(!send_pending(&client_ctx, client_socket, conn)) {
+        printf("send_pending failed during connection close");
         quicly_free(conn);
         exit(0);
     }

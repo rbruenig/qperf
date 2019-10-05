@@ -21,8 +21,10 @@ static int report_counter = 0;
 static void server_report_cb(EV_P, ev_timer *w, int revents)
 {
     server_stream *s = (server_stream*)w->data;
-    int64_t *send_cwnd = *quicly_get_data(s->stream->conn);
-    printf("connection %i second %i send window: %"PRIi64"\n", s->report_id, s->report_second, *send_cwnd);
+    quicly_stats_t stats;
+    quicly_get_stats(s->stream->conn, &stats);
+    printf("connection %i second %i send window: %"PRIu32"\n", s->report_id, s->report_second, stats.cc.cwnd);
+    fflush(stdout);
     ++s->report_second;
 }
 
