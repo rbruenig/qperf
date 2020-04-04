@@ -110,12 +110,8 @@ static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct 
         // new conn
         int ret = quicly_accept(&conn, &server_ctx, 0, sa, packet, NULL, &next_cid, NULL);
         if(ret != 0) {
-            if(ret == QUICLY_TRANSPORT_ERROR_VERSION_NEGOTIATION) {
-                printf("quicly_accept failed with QUICLY_TRANSPORT_ERROR_VERSION_NEGOTIATION\n");
-            } else {
-                printf("quicly_accept failed with code %i\n", ret);
-            }
-            return; // ignore errors, including QUICLY_TRANSPORT_ERROR_VERSION_NEGOTIATION
+            printf("quicly_accept failed with code %i\n", ret);
+            return;
         }
         ++next_cid.master_id;
         printf("got new connection\n");
