@@ -40,13 +40,12 @@ static void report_cb(EV_P_ ev_timer *w, int revents)
     }
 }
 
-static int client_stream_send_stop(quicly_stream_t *stream, int err)
+static void client_stream_send_stop(quicly_stream_t *stream, int err)
 {
     fprintf(stderr, "received STOP_SENDING: %i\n", err);
-    return 0;
 }
 
-static int client_stream_receive(quicly_stream_t *stream, size_t off, const void *src, size_t len)
+static void client_stream_receive(quicly_stream_t *stream, size_t off, const void *src, size_t len)
 {
     if(first_receive) {
         bytes_received = 0;
@@ -57,19 +56,16 @@ static int client_stream_receive(quicly_stream_t *stream, size_t off, const void
     }
 
     if(len == 0) {
-        return 0;
+        return;
     }
 
     bytes_received += len;
     quicly_stream_sync_recvbuf(stream, len);
-
-    return 0;
 }
 
-static int client_stream_receive_reset(quicly_stream_t *stream, int err)
+static void client_stream_receive_reset(quicly_stream_t *stream, int err)
 {
     fprintf(stderr, "received RESET_STREAM: %i\n", err);
-    return 0;
 }
 
 static const quicly_stream_callbacks_t client_stream_callbacks = {

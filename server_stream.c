@@ -41,7 +41,7 @@ static void server_stream_send_shift(quicly_stream_t *stream, size_t delta)
     s->acked_offset += delta;
 }
 
-static int server_stream_send_emit(quicly_stream_t *stream, size_t off, void *dst, size_t *len, int *wrote_all)
+static void server_stream_send_emit(quicly_stream_t *stream, size_t off, void *dst, size_t *len, int *wrote_all)
 {
     server_stream *s = stream->data;
     uint64_t data_off = s->acked_offset + off;
@@ -56,18 +56,15 @@ static int server_stream_send_emit(quicly_stream_t *stream, size_t off, void *ds
     }
 
     memset(dst, 0x58, *len);
-
-    return 0;
 }
 
-static int server_stream_send_stop(quicly_stream_t *stream, int err)
+static void server_stream_send_stop(quicly_stream_t *stream, int err)
 {
     printf("server_stream_send_stop stream-id=%li\n", stream->stream_id);
     fprintf(stderr, "received STOP_SENDING: %i\n", err);
-    return 0;
 }
 
-static int server_stream_receive(quicly_stream_t *stream, size_t off, const void *src, size_t len)
+static void server_stream_receive(quicly_stream_t *stream, size_t off, const void *src, size_t len)
 {
     //print_escaped((const char*)src, len);
     quicly_stream_sync_recvbuf(stream, len);
@@ -77,15 +74,12 @@ static int server_stream_receive(quicly_stream_t *stream, size_t off, const void
         quicly_stream_sync_sendbuf(stream, 1);
         ev_timer_start(EV_DEFAULT, &((server_stream*)stream->data)->report_timer);
     }
-
-    return 0;
 }
 
-static int server_stream_receive_reset(quicly_stream_t *stream, int err)
+static void server_stream_receive_reset(quicly_stream_t *stream, int err)
 {
     printf("server_stream_receive_reset stream-id=%li\n", stream->stream_id);
     fprintf(stderr, "received RESET_STREAM: %i\n", err);
-    return 0;
 }
 
 static const quicly_stream_callbacks_t server_stream_callbacks = {
