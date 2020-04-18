@@ -57,7 +57,7 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
 
     while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
         for(ssize_t offset = 0; offset < bytes_received; ) {
-            size_t packet_len = quicly_decode_packet(&client_ctx, &packet, buf + offset, bytes_received - offset);
+            size_t packet_len = quicly_decode_packet(&client_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
                 break;
             }
@@ -75,9 +75,6 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
                 int64_t establish_time = connect_time - start_time;
                 printf("connection establishment time: %lums\n", establish_time);
             }
-            // ----------------------------------------------------------------
-
-            offset += packet_len;
         }
     }
 
