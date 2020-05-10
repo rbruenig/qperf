@@ -13,24 +13,38 @@ typedef struct
     quicly_stream_t *stream;
     int report_id;
     int report_second;
+    uint64_t report_num_packets_sent;
+    uint64_t report_num_packets_lost;
+    uint64_t total_num_packets_sent;
+    uint64_t total_num_packets_lost;
     ev_timer report_timer;
 } server_stream;
 
 static int report_counter = 0;
 
-static void server_report_cb(EV_P, ev_timer *w, int revents)
+static void print_report(server_stream *s)
 {
-    server_stream *s = (server_stream*)w->data;
     quicly_stats_t stats;
     quicly_get_stats(s->stream->conn, &stats);
-    printf("connection %i second %i send window: %"PRIu32"\n", s->report_id, s->report_second, stats.cc.cwnd);
+    s->report_num_packets_sent = stats.num_packets.sent - s->total_num_packets_sent;
+    s->report_num_packets_lost = stats.num_packets.lost - s->total_num_packets_lost;
+    s->total_num_packets_sent = stats.num_packets.sent;
+    s->total_num_packets_lost = stats.num_packets.lost;
+    printf("connection %i second %i send window: %"PRIu32" packets sent: %"PRIu64" packets lost: %"PRIu64"\n", s->report_id, s->report_second, stats.cc.cwnd, s->report_num_packets_sent, s->report_num_packets_lost);
     fflush(stdout);
     ++s->report_second;
+}
+
+static void server_report_cb(EV_P, ev_timer *w, int revents)
+{
+    print_report((server_stream*)w->data);
 }
 
 static void server_stream_destroy(quicly_stream_t *stream, int err)
 {
     server_stream *s = (server_stream*)stream->data;
+    print_report(s);
+    printf("connection %i total packets sent: %"PRIu64" total packets lost: %"PRIu64"\n", s->report_id, s->total_num_packets_sent, s->total_num_packets_lost);
     ev_timer_stop(EV_DEFAULT, &s->report_timer);
     free(s);
 }
@@ -99,6 +113,10 @@ int server_on_stream_open(quicly_stream_open_t *self, quicly_stream_t *stream)
     s->stream = stream;
     s->report_id = report_counter++;
     s->report_second = 0;
+    s->report_num_packets_sent = 0;
+    s->report_num_packets_lost = 0;
+    s->total_num_packets_sent = 0;
+    s->total_num_packets_lost = 0;
     ev_timer_init(&s->report_timer, server_report_cb, 1.0, 1.0);
     s->report_timer.data = s;
 
