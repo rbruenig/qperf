@@ -119,9 +119,9 @@ static void client_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *c
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
 static quicly_closed_by_peer_t closed_by_peer = {&client_on_conn_close};
 
-int run_client(const char *host, int runtime_s, bool ttfb_only)
+int run_client(const char *port, const char *host, int runtime_s, bool ttfb_only)
 {
-    printf("running client with host=%s and runtime=%is\n", host, runtime_s);
+    printf("running client with host=%s, port=%s and runtime=%is\n", host, port, runtime_s);
     quit_after_first_byte = ttfb_only;
 
     client_ctx = quicly_spec_context;
@@ -139,7 +139,7 @@ int run_client(const char *host, int runtime_s, bool ttfb_only)
 
     struct sockaddr_storage sas;
     socklen_t salen;
-    if(resolve_address((void*)&sas, &salen, host, "18080", AF_INET, SOCK_DGRAM, IPPROTO_UDP) != 0) {
+    if(resolve_address((void*)&sas, &salen, host, port, AF_INET, SOCK_DGRAM, IPPROTO_UDP) != 0) {
         exit(-1);
     }
 

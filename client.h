@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-int run_client(const char *host, int runtime_s, bool ttfb_only);
+int run_client(const char* port, const char *host, int runtime_s, bool ttfb_only);
 void quit_client();
 void quit_client();
 
