@@ -170,7 +170,7 @@ static void server_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *c
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
 static quicly_closed_by_peer_t closed_by_peer = {&server_on_conn_close};
 
-int run_server(const char *cert, const char *key)
+int run_server(const char *port, const char *cert, const char *key)
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
@@ -188,20 +188,20 @@ int run_server(const char *cert, const char *key)
 
     struct ev_loop *loop = EV_DEFAULT;
 
-    struct addrinfo *addr = get_address("0.0.0.0", "18080");
+    struct addrinfo *addr = get_address("0.0.0.0", port);
     if(addr == NULL) {
-        perror("failed get addrinfo for port 18080");
+        printf("failed get addrinfo for port %s\n", port);
         return -1;
     }
 
     server_socket = udp_listen(addr);
     freeaddrinfo(addr);
     if(server_socket == -1) {
-        perror("failed to listen on port 18080");
+        printf("failed to listen on port %s\n", port);
         return 1;
     }
 
-    printf("starting server on port 18080\n");
+    printf("starting server on port %s\n", port);
 
     ev_io socket_watcher;
     ev_io_init(&socket_watcher, &server_read_cb, server_socket, EV_READ);
