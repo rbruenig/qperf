@@ -20,16 +20,17 @@ server
 starting server on port 18080
 got new connection
 request received, sending data
-connection 0 second 0 send window: 410688458
-connection 0 second 1 send window: 825786506
-connection 0 second 2 send window: 1301139487
-connection 0 second 3 send window: 1781791568
-connection 0 second 4 send window: 1295055881
-connection 0 second 5 send window: 1295055881
-connection 0 second 6 send window: 634578277
-connection 0 second 7 send window: 634578277
-connection 0 second 8 send window: 444205689
-connection 0 second 9 send window: 444206969
+connection 0 second 0 send window: 1112923 packets sent: 364792 packets lost: 373
+connection 0 second 1 send window: 1238055 packets sent: 377515 packets lost: 123
+connection 0 second 2 send window: 583352 packets sent: 355482 packets lost: 862
+connection 0 second 3 send window: 275563 packets sent: 367538 packets lost: 607
+connection 0 second 4 send window: 1100261 packets sent: 366005 packets lost: 20
+connection 0 second 5 send window: 633010 packets sent: 356021 packets lost: 857
+connection 0 second 6 send window: 1266610 packets sent: 367866 packets lost: 0
+connection 0 second 7 send window: 1668530 packets sent: 360649 packets lost: 0
+connection 0 second 8 send window: 1994930 packets sent: 364087 packets lost: 0
+connection 0 second 9 send window: 1779683 packets sent: 374804 packets lost: 80
+connection 0 total packets sent: 3654759 total packets lost: 2922
 ```
 *Note*: The server looks for a TLS certificate and key in the current working dir named "server.crt" and "server.key" respectively. You can use a self signed certificate; the client doesn't validate it.
 
