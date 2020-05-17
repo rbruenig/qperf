@@ -7,6 +7,7 @@ Uses https://github.com/h2o/quicly
 Usage: ./qperf [options]
 
 Options:
+  -p              port to listen on/connect to (default 18080)
   -s              run as server
   -c target       run as client and connect to target server
   -t time (s)     run for X seconds (default 10s)
