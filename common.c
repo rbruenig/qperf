@@ -1,6 +1,7 @@
 #include "common.h"
 
 #include <sys/socket.h>
+#include <netinet/udp.h>
 #include <netdb.h>
 #include <memory.h>
 #include <picotls/openssl.h>
@@ -35,15 +36,79 @@ struct addrinfo *get_address(const char *host, const char *port)
     }
 }
 
+#ifdef __linux__
+    #ifndef UDP_SEGMENT
+        #define UDP_SEGMENT 103
+    #endif
+#endif
+
+void send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
+{
+    for(size_t i = 0; i < num_dgrams; ++i) {
+        struct msghdr mess = {
+            .msg_name = dest,
+            .msg_namelen = quicly_get_socklen(dest),
+            .msg_iov = &dgrams[i], .msg_iovlen = 1
+        };
+
+        ssize_t bytes_sent;
+        while ((bytes_sent = sendmsg(fd, &mess, 0)) == -1 && errno == EINTR);
+        if (bytes_sent == -1)
+            perror("sendmsg failed");
+    }
+}
+
+void send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
+{
+    struct iovec vec = {
+        .iov_base = (void *)dgrams[0].iov_base,
+        .iov_len = dgrams[num_dgrams - 1].iov_base + dgrams[num_dgrams - 1].iov_len - dgrams[0].iov_base
+    };
+
+    struct msghdr mess = {
+        .msg_name = dest,
+        .msg_namelen = quicly_get_socklen(dest),
+        .msg_iov = &vec,
+        .msg_iovlen = 1
+    };
+
+    union {
+        struct cmsghdr hdr;
+        char buf[CMSG_SPACE(sizeof(uint16_t))];
+    } cmsg;
+    if (num_dgrams != 1) {
+        cmsg.hdr.cmsg_level = SOL_UDP;
+        cmsg.hdr.cmsg_type = UDP_SEGMENT;
+        cmsg.hdr.cmsg_len = CMSG_LEN(sizeof(uint16_t));
+        *(uint16_t *)CMSG_DATA(&cmsg.hdr) = dgrams[0].iov_len;
+        mess.msg_control = &cmsg;
+        mess.msg_controllen = (socklen_t)CMSG_SPACE(sizeof(uint16_t));
+    }
+
+    ssize_t bytes_sent;
+    while ((bytes_sent = sendmsg(fd, &mess, 0)) == -1 && errno == EINTR);
+    if (bytes_sent == -1)
+        perror("sendmsg failed");
+}
+
+void (*send_dgrams)(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams) = send_dgrams_default;
+
+void enable_gso()
+{
+    send_dgrams = send_dgrams_gso;
+}
+
 bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
 {
-#define SEND_BATCH_SIZE 16
+    #define SEND_BATCH_SIZE 16
 
-    quicly_datagram_t   *packets[SEND_BATCH_SIZE];
+    quicly_address_t dest, src;
+    struct iovec dgrams[SEND_BATCH_SIZE];
+    uint8_t dgrams_buf[SEND_BATCH_SIZE * ctx->transport_params.max_udp_payload_size];
+    size_t num_dgrams = SEND_BATCH_SIZE;
 
     while(true) {
-        size_t packet_count = SEND_BATCH_SIZE;
-        int quicly_res = quicly_send(conn, packets, &packet_count);
+        int quicly_res = quicly_send(conn, &dest, &src, dgrams, &num_dgrams, &dgrams_buf, sizeof(dgrams_buf));
         if(quicly_res != 0) {
             if(quicly_res != QUICLY_ERROR_FREE_CONNECTION) {
                 printf("quicly_send failed with code %i\n", quicly_res);
@@ -51,23 +116,13 @@ bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
                 printf("connection closed\n");
             }
             return false;
-        } else if(packet_count == 0) {
+        } else if(num_dgrams == 0) {
             return true;
         }
 
-        for(size_t i = 0; i < packet_count; ++i) {
-            quicly_datagram_t *packet = packets[i];
-            ssize_t bytes_sent = sendto(fd, packet->data.base, packet->data.len, 0,
-                                        &packet->dest.sa, quicly_get_socklen(&packet->dest.sa));
-            ctx->packet_allocator->free_packet(ctx->packet_allocator, packets[i]);
-            if(bytes_sent == -1) {
-                perror("sendto failed");
-                return false;
-            }
-        }
+        send_dgrams(fd, &dest.sa, dgrams, num_dgrams);
     };
 }
-
 
 void print_escaped(const char *src, size_t len)
 {

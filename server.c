@@ -152,7 +152,7 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
     server_send_pending();
 }
 
-static void server_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *conn, int err,
+static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, int err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
@@ -169,9 +169,9 @@ static void server_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *c
 }
 
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
-static quicly_closed_by_peer_t closed_by_peer = {&server_on_conn_close};
+static quicly_closed_by_remote_t closed_by_remote = {&server_on_conn_close};
 
-int run_server(const char *port, const char *cert, const char *key)
+int run_server(const char *port, bool gso, const char *cert, const char *key)
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
@@ -179,10 +179,14 @@ int run_server(const char *port, const char *cert, const char *key)
     server_ctx = quicly_spec_context;
     server_ctx.tls = get_tlsctx();
     server_ctx.stream_open = &stream_open;
-    server_ctx.closed_by_peer = &closed_by_peer;
+    server_ctx.closed_by_remote = &closed_by_remote;
     server_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
+
+    if (gso) {
+        enable_gso();
+    }
 
     load_certificate_chain(server_ctx.tls, cert);
     load_private_key(server_ctx.tls, key);

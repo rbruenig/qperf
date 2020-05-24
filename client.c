@@ -100,7 +100,7 @@ void enqueue_request(quicly_conn_t *conn)
     quicly_streambuf_egress_shutdown(stream);
 }
 
-static void client_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *conn, int err,
+static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, int err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
@@ -117,9 +117,9 @@ static void client_on_conn_close(quicly_closed_by_peer_t *self, quicly_conn_t *c
 }
 
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
-static quicly_closed_by_peer_t closed_by_peer = {&client_on_conn_close};
+static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
 
-int run_client(const char *port, const char *host, int runtime_s, bool ttfb_only)
+int run_client(const char *port, bool gso, const char *host, int runtime_s, bool ttfb_only)
 {
     printf("running client with host=%s, port=%s and runtime=%is\n", host, port, runtime_s);
     quit_after_first_byte = ttfb_only;
@@ -127,10 +127,14 @@ int run_client(const char *port, const char *host, int runtime_s, bool ttfb_only
     client_ctx = quicly_spec_context;
     client_ctx.tls = get_tlsctx();
     client_ctx.stream_open = &stream_open;
-    client_ctx.closed_by_peer = &closed_by_peer;
+    client_ctx.closed_by_remote = &closed_by_remote;
     client_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
+
+    if (gso) {
+        enable_gso();
+    }
 
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
