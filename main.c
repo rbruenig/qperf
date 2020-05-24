@@ -44,7 +44,7 @@ int main(int argc, char** argv)
             case 'g':
                 #ifdef __linux__
                     gso = true;
-                    printf("using UDP GSO, requires enabled 'generic-segmentation-offload' and kernel >= 4.18\n");
+                    printf("using UDP GSO, requires kernel >= 4.18\n");
                 #else
                     fprintf(stderr, "UDP GSO only supported on linux\n");
                     exit(1);
