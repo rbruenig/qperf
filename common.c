@@ -42,7 +42,7 @@ struct addrinfo *get_address(const char *host, const char *port)
     #endif
 #endif
 
-void send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
+bool send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
 {
     for(size_t i = 0; i < num_dgrams; ++i) {
         struct msghdr mess = {
@@ -53,12 +53,16 @@ void send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, si
 
         ssize_t bytes_sent;
         while ((bytes_sent = sendmsg(fd, &mess, 0)) == -1 && errno == EINTR);
-        if (bytes_sent == -1)
+        if (bytes_sent == -1) {
             perror("sendmsg failed");
+            return false;
+        }
     }
+
+    return true;
 }
 
-void send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
+bool send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
 {
     struct iovec vec = {
         .iov_base = (void *)dgrams[0].iov_base,
@@ -87,11 +91,15 @@ void send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t
 
     ssize_t bytes_sent;
     while ((bytes_sent = sendmsg(fd, &mess, 0)) == -1 && errno == EINTR);
-    if (bytes_sent == -1)
+    if (bytes_sent == -1) {
         perror("sendmsg failed");
+        return false;
+    }
+
+    return true;
 }
 
-void (*send_dgrams)(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams) = send_dgrams_default;
+bool (*send_dgrams)(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams) = send_dgrams_default;
 
 void enable_gso()
 {
@@ -120,7 +128,9 @@ bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
             return true;
         }
 
-        send_dgrams(fd, &dest.sa, dgrams, num_dgrams);
+        if (!send_dgrams(fd, &dest.sa, dgrams, num_dgrams)) {
+            return false;
+        }
     };
 }
 
