@@ -7,18 +7,19 @@ Uses https://github.com/h2o/quicly
 Usage: ./qperf [options]
 
 Options:
+  -c target       run as client and connect to target server
+  -e              measure time for connection establishment and first byte only
+  -g              enable UDP generic segmentation offload
   -p              port to listen on/connect to (default 18080)
   -s              run as server
-  -c target       run as client and connect to target server
   -t time (s)     run for X seconds (default 10s)
-  -e              measure time for connection establishment and first byte only
   -h              print this help
 ```
 
 server
 ```
 ./qperf -s
-starting server on port 18080
+starting server with pid 5624 on port 18080
 got new connection
 request received, sending data
 connection 0 second 0 send window: 1112923 packets sent: 364792 packets lost: 373
