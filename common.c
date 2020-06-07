@@ -7,6 +7,12 @@
 #include <picotls/openssl.h>
 #include <errno.h>
 
+#ifdef __linux__
+    /* UDP GSO is only supported on linux */
+    #ifndef UDP_SEGMENT
+        #define UDP_SEGMENT 103 /* Set GSO segmentation size */
+    #endif
+#endif
 
 ptls_context_t *get_tlsctx()
 {
@@ -35,12 +41,6 @@ struct addrinfo *get_address(const char *host, const char *port)
         return result;
     }
 }
-
-#ifdef __linux__
-    #ifndef UDP_SEGMENT
-        #define UDP_SEGMENT 103
-    #endif
-#endif
 
 bool send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
 {
