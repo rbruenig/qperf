@@ -10,7 +10,6 @@
 #include <float.h>
 #include <inttypes.h>
 #include <stdbool.h>
-#include <sys/syscall.h> 
 
 #include <quicly/streambuf.h>
 
@@ -206,16 +205,8 @@ int run_server(const char *port, bool gso, const char *cert, const char *key)
         return 1;
     }
 
-    uint64_t pid;
-
-    #ifdef __APPLE__
-        pthread_threadid_np(NULL, &pid);
-    #else
-        pid = syscall(SYS_gettid);
-    #endif
-
     char pid_char[21];
-    sprintf(pid_char, "%" PRIu64, pid);
+    sprintf(pid_char, "%" PRIu64, get_current_pid());
 
     printf("starting server with pid %s on port %s\n", pid_char, port);
 

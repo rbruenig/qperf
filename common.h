@@ -3,6 +3,8 @@
 #include <quicly.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 ptls_context_t *get_tlsctx();
 
@@ -38,4 +40,17 @@ static inline int64_t clamp_int64(int64_t val, int64_t min, int64_t max)
         return max;
     }
     return val;
+}
+
+static inline uint64_t get_current_pid()
+{
+    uint64_t pid;
+
+    #ifdef __APPLE__
+        pthread_threadid_np(NULL, &pid);
+    #else
+        pid = syscall(SYS_gettid);
+    #endif
+
+    return pid;
 }
