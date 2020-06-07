@@ -35,40 +35,40 @@ int main(int argc, char** argv)
 
     while ((ch = getopt(argc, argv, "c:egp:st:h")) != -1) {
         switch (ch) {
-            case 'c':
-                host = optarg;
-                break;
-            case 'e':
-                ttfb_only = true;
-                break;
-            case 'g':
-                #ifdef __linux__
-                    gso = true;
-                    printf("using UDP GSO, requires kernel >= 4.18\n");
-                #else
-                    fprintf(stderr, "UDP GSO only supported on linux\n");
-                    exit(1);
-                #endif
-                break;
-            case 'p':
-                port = (intptr_t)optarg;
-                if(sscanf(optarg, "%u", &port) < 0 || port > 65535) {
-                    fprintf(stderr, "invalid argument passed to -p\n");
-                    exit(1);
-                }
-                break;
-            case 's':
-                server_mode = true;
-                break;
-            case 't':
-                if(sscanf(optarg, "%u", &runtime_s) != 1 || runtime_s < 1) {
-                    fprintf(stderr, "invalid argument passed to -t\n");
-                    exit(1);
-                }
-                break;
-            default:
-                usage(argv[0]);
+        case 'c':
+            host = optarg;
+            break;
+        case 'e':
+            ttfb_only = true;
+            break;
+        case 'g':
+            #ifdef __linux__
+                gso = true;
+                printf("using UDP GSO, requires kernel >= 4.18\n");
+            #else
+                fprintf(stderr, "UDP GSO only supported on linux\n");
                 exit(1);
+            #endif
+            break;
+        case 'p':
+            port = (intptr_t)optarg;
+            if(sscanf(optarg, "%u", &port) < 0 || port > 65535) {
+                fprintf(stderr, "invalid argument passed to -p\n");
+                exit(1);
+            }
+            break;
+        case 's':
+            server_mode = true;
+            break;
+        case 't':
+            if(sscanf(optarg, "%u", &runtime_s) != 1 || runtime_s < 1) {
+                fprintf(stderr, "invalid argument passed to -t\n");
+                exit(1);
+            }
+            break;
+        default:
+            usage(argv[0]);
+            exit(1);
         }
     }
 
