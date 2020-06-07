@@ -205,10 +205,7 @@ int run_server(const char *port, bool gso, const char *cert, const char *key)
         return 1;
     }
 
-    char pid_char[21];
-    sprintf(pid_char, "%" PRIu64, get_current_pid());
-
-    printf("starting server with pid %s on port %s\n", pid_char, port);
+    printf("starting server with pid %" PRIu64 " on port %s\n", get_current_pid(), port);
 
     ev_io socket_watcher;
     ev_io_init(&socket_watcher, &server_read_cb, server_socket, EV_READ);
