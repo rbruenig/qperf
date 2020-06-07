@@ -7,13 +7,6 @@
 #include <picotls/openssl.h>
 #include <errno.h>
 
-#ifdef __linux__
-    /* UDP GSO is only supported on linux */
-    #ifndef UDP_SEGMENT
-        #define UDP_SEGMENT 103 /* Set GSO segmentation size */
-    #endif
-#endif
-
 ptls_context_t *get_tlsctx()
 {
     static ptls_context_t tlsctx = {.random_bytes = ptls_openssl_random_bytes,
@@ -62,6 +55,12 @@ bool send_dgrams_default(int fd, struct sockaddr *dest, struct iovec *dgrams, si
     return true;
 }
 
+#ifdef __linux__
+    /* UDP GSO is only supported on linux */
+    #ifndef UDP_SEGMENT
+        #define UDP_SEGMENT 103 /* Set GSO segmentation size */
+    #endif
+
 bool send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams)
 {
     struct iovec vec = {
@@ -98,6 +97,8 @@ bool send_dgrams_gso(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t
 
     return true;
 }
+
+#endif
 
 bool (*send_dgrams)(int fd, struct sockaddr *dest, struct iovec *dgrams, size_t num_dgrams) = send_dgrams_default;
 
