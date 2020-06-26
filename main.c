@@ -32,6 +32,7 @@ int main(int argc, char** argv)
     int ch;
     bool ttfb_only = false;
     bool gso = false;
+    const char *logfile = NULL;
 
     while ((ch = getopt(argc, argv, "c:egp:st:h")) != -1) {
         switch (ch) {
@@ -85,6 +86,6 @@ int main(int argc, char** argv)
     char port_char[16];
     sprintf(port_char, "%d", port);
     return server_mode ?
-                run_server(port_char, gso, "server.crt", "server.key") :
-                run_client(port_char, gso, host, runtime_s, ttfb_only);
+                run_server(port_char, gso, logfile, "server.crt", "server.key") :
+                run_client(port_char, gso, logfile, host, runtime_s, ttfb_only);
 }
