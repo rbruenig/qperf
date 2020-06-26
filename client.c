@@ -121,8 +121,8 @@ static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
 
 int run_client(const char *port, bool gso, const char *host, int runtime_s, bool ttfb_only)
 {
-    printf("running client with host=%s, port=%s and runtime=%is\n", host, port, runtime_s);
-    quit_after_first_byte = ttfb_only;
+    setup_session_cache(get_tlsctx());
+    quicly_amend_ptls_context(get_tlsctx());
 
     client_ctx = quicly_spec_context;
     client_ctx.tls = get_tlsctx();
@@ -135,9 +135,6 @@ int run_client(const char *port, bool gso, const char *host, int runtime_s, bool
     if (gso) {
         enable_gso();
     }
-
-    setup_session_cache(get_tlsctx());
-    quicly_amend_ptls_context(get_tlsctx());
 
     struct ev_loop *loop = EV_DEFAULT;
 
@@ -161,6 +158,9 @@ int run_client(const char *port, bool gso, const char *host, int runtime_s, bool
         perror("bind(2) failed");
         return 1;
     }
+
+    printf("running client with host=%s, port=%s and runtime=%is\n", host, port, runtime_s);
+    quit_after_first_byte = ttfb_only;
 
     // start time
     start_time = client_ctx.now->cb(client_ctx.now);
