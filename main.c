@@ -15,6 +15,7 @@ static void usage(const char *cmd)
             "  -c target       run as client and connect to target server\n"
             "  -e              measure time for connection establishment and first byte only\n"
             "  -g              enable UDP generic segmentation offload\n"
+            "  -l log-file     file to log tls secrets\n"
             "  -p              port to listen on/connect to (default 18080)\n"
             "  -s              run as server\n"
             "  -t time (s)     run for X seconds (default 10s)\n"
@@ -34,7 +35,7 @@ int main(int argc, char** argv)
     bool gso = false;
     const char *logfile = NULL;
 
-    while ((ch = getopt(argc, argv, "c:egp:st:h")) != -1) {
+    while ((ch = getopt(argc, argv, "c:egl:p:st:h")) != -1) {
         switch (ch) {
         case 'c':
             host = optarg;
@@ -50,6 +51,9 @@ int main(int argc, char** argv)
                 fprintf(stderr, "UDP GSO only supported on linux\n");
                 exit(1);
             #endif
+            break;
+        case 'l':
+            logfile = optarg;
             break;
         case 'p':
             port = (intptr_t)optarg;
