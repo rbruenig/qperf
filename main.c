@@ -12,15 +12,16 @@ static void usage(const char *cmd)
     printf("Usage: %s [options]\n"
             "\n"
             "Options:\n"
-            "  -c target           run as client and connect to target server\n"
-            "  --cc [reno,cubic]   congestion control algorithm to use (default reno)\n"
-            "  -e                  measure time for connection establishment and first byte only\n"
-            "  -g                  enable UDP generic segmentation offload\n"
-            "  -l log-file         file to log tls secrets\n"
-            "  -p                  port to listen on/connect to (default 18080)\n"
-            "  -s                  run as server\n"
-            "  -t time (s)         run for X seconds (default 10s)\n"
-            "  -h                  print this help\n"
+            "  -c target            run as client and connect to target server\n"
+            "  --cc [reno,cubic]    congestion control algorithm to use (default reno)\n"
+            "  -e                   measure time for connection establishment and first byte only\n"
+            "  -g                   enable UDP generic segmentation offload\n"
+            "  --iw initial-window  initial window to use (default 10)\n"
+            "  -l log-file          file to log tls secrets\n"
+            "  -p                   port to listen on/connect to (default 18080)\n"
+            "  -s                   run as server\n"
+            "  -t time (s)          run for X seconds (default 10s)\n"
+            "  -h                   print this help\n"
             "\n",
            cmd);
 }
@@ -28,6 +29,7 @@ static void usage(const char *cmd)
 static struct option long_options[] = 
 {
     {"cc", required_argument, NULL, 0},
+    {"iw", required_argument, NULL, 1},
     {NULL, 0, NULL, 0}
 };
 
@@ -52,6 +54,13 @@ int main(int argc, char** argv)
                 exit(1);
             }
             cc = optarg;
+            break;
+        case 1:
+            iw = (intptr_t)optarg;
+            if(sscanf(optarg, "%u", &iw) < 0 || iw < 1) {
+                fprintf(stderr, "invalid argument passed to --iw\n");
+                exit(1);
+            }
             break;
         case 'c':
             host = optarg;
