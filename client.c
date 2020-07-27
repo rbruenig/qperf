@@ -140,6 +140,8 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
         client_ctx.init_cc = &client_init_cc_cubic;
     }
 
+    set_iw(iw, client_ctx.transport_params.max_udp_payload_size);
+
     if (gso) {
         enable_gso();
     }

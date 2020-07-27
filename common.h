@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+uint32_t iw_cc;
+
 ptls_context_t *get_tlsctx();
 
 struct addrinfo *get_address(const char *host, const char *port);
@@ -57,10 +59,15 @@ static inline uint64_t get_current_pid()
 
 static void init_cc_reno(quicly_init_cc_t *init_cc, quicly_cc_t *cc, uint32_t initcwnd, int64_t now)
 {
-    quicly_cc_reno_init(cc, initcwnd);
+    quicly_cc_reno_init(cc, iw_cc);
 }
 
 static void init_cc_cubic(quicly_init_cc_t *init_cc, quicly_cc_t *cc, uint32_t initcwnd, int64_t now)
 {
-    quicly_cc_cubic_init(cc, initcwnd);
+    quicly_cc_cubic_init(cc, iw_cc);
+}
+
+static void set_iw(int iw, uint64_t max_udp_payload_size)
+{
+    iw_cc = iw * max_udp_payload_size;
 }

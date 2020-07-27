@@ -190,6 +190,8 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
     } else if(strcmp(cc, "cubic") == 0) {
         server_ctx.init_cc = &server_init_cc_cubic;
     }
+
+    set_iw(iw, server_ctx.transport_params.max_udp_payload_size);
     
     if (gso) {
         enable_gso();
