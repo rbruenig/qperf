@@ -169,6 +169,8 @@ static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
 
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
 static quicly_closed_by_remote_t closed_by_remote = {&server_on_conn_close};
+static quicly_init_cc_t server_init_cc_reno = {&init_cc_reno};
+static quicly_init_cc_t server_init_cc_cubic = {&init_cc_cubic};
 
 int run_server(const char *port, bool gso, const char *logfile, const char *cc, const char *cert, const char *key)
 {
@@ -183,6 +185,12 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
     server_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
 
+    if(strcmp(cc, "reno") == 0) {
+        server_ctx.init_cc = &server_init_cc_reno;
+    } else if(strcmp(cc, "cubic") == 0) {
+        server_ctx.init_cc = &server_init_cc_cubic;
+    }
+    
     if (gso) {
         enable_gso();
     }
