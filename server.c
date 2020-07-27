@@ -170,7 +170,7 @@ static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
 static quicly_closed_by_remote_t closed_by_remote = {&server_on_conn_close};
 
-int run_server(const char *port, bool gso, const char *logfile, const char *cert, const char *key)
+int run_server(const char *port, bool gso, const char *logfile, const char *cc, const char *cert, const char *key)
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());

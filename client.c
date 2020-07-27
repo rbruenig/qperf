@@ -119,7 +119,7 @@ static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
 static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
 
-int run_client(const char *port, bool gso, const char *logfile, const char *host, int runtime_s, bool ttfb_only)
+int run_client(const char *port, bool gso, const char *logfile, const char *cc, const char *host, int runtime_s, bool ttfb_only)
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
