@@ -105,6 +105,6 @@ int main(int argc, char** argv)
     char port_char[16];
     sprintf(port_char, "%d", port);
     return server_mode ?
-                run_server(port_char, gso, logfile, "server.crt", "server.key") :
-                run_client(port_char, gso, logfile, host, runtime_s, ttfb_only);
+                run_server(port_char, gso, logfile, cc, "server.crt", "server.key") :
+                run_client(port_char, gso, logfile, cc, host, runtime_s, ttfb_only);
 }
