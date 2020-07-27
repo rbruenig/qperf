@@ -174,7 +174,7 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
         setup_log_event(client_ctx.tls, logfile);
     }
 
-    printf("starting client with host %s, port %s, runtime %is, cc %s\n", host, port, runtime_s, cc);
+    printf("starting client with host %s, port %s, runtime %is, cc %s, iw %i\n", host, port, runtime_s, cc, iw);
     quit_after_first_byte = ttfb_only;
 
     // start time

@@ -220,7 +220,7 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
         setup_log_event(server_ctx.tls, logfile);
     }
 
-    printf("starting server with pid %" PRIu64 ", port %s, cc %s\n", get_current_pid(), port, cc);
+    printf("starting server with pid %" PRIu64 ", port %s, cc %s, iw %i\n", get_current_pid(), port, cc, iw);
 
     ev_io socket_watcher;
     ev_io_init(&socket_watcher, &server_read_cb, server_socket, EV_READ);
