@@ -42,6 +42,7 @@ int main(int argc, char** argv)
     bool gso = false;
     const char *logfile = NULL;
     const char *cc = "reno";
+    int iw = 10;
 
     while ((ch = getopt_long(argc, argv, "c:egl:p:st:h", long_options, NULL)) != -1) {
         switch (ch) {
@@ -105,6 +106,6 @@ int main(int argc, char** argv)
     char port_char[16];
     sprintf(port_char, "%d", port);
     return server_mode ?
-                run_server(port_char, gso, logfile, cc, "server.crt", "server.key") :
-                run_client(port_char, gso, logfile, cc, host, runtime_s, ttfb_only);
+                run_server(port_char, gso, logfile, cc, iw, "server.crt", "server.key") :
+                run_client(port_char, gso, logfile, cc, iw, host, runtime_s, ttfb_only);
 }
