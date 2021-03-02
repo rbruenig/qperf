@@ -118,8 +118,6 @@ static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
 
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
 static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
-static quicly_init_cc_t client_init_cc_reno = {&init_cc_reno};
-static quicly_init_cc_t client_init_cc_cubic = {&init_cc_cubic};
 
 int run_client(const char *port, bool gso, const char *logfile, const char *cc, int iw, const char *host, int runtime_s, bool ttfb_only)
 {
@@ -135,9 +133,9 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
     client_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
 
     if(strcmp(cc, "reno") == 0) {
-        client_ctx.init_cc = &client_init_cc_reno;
+        client_ctx.init_cc = &quicly_cc_reno_init;
     } else if(strcmp(cc, "cubic") == 0) {
-        client_ctx.init_cc = &client_init_cc_cubic;
+        client_ctx.init_cc = &quicly_cc_cubic_init;
     }
 
     set_iw(iw, client_ctx.transport_params.max_udp_payload_size);

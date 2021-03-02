@@ -57,16 +57,6 @@ static inline uint64_t get_current_pid()
     return pid;
 }
 
-static void init_cc_reno(quicly_init_cc_t *init_cc, quicly_cc_t *cc, uint32_t initcwnd, int64_t now)
-{
-    quicly_cc_reno_init(cc, iw_cc);
-}
-
-static void init_cc_cubic(quicly_init_cc_t *init_cc, quicly_cc_t *cc, uint32_t initcwnd, int64_t now)
-{
-    quicly_cc_cubic_init(cc, iw_cc);
-}
-
 static void set_iw(int iw, uint64_t max_udp_payload_size)
 {
     iw_cc = iw * max_udp_payload_size;
