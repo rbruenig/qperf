@@ -56,8 +56,3 @@ static inline uint64_t get_current_pid()
 
     return pid;
 }
-
-static void set_iw(int iw, uint64_t max_udp_payload_size)
-{
-    iw_cc = iw * max_udp_payload_size;
-}

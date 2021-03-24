@@ -182,6 +182,7 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
     server_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     server_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
+    server_ctx.initcwnd_packets = iw;
 
     if(strcmp(cc, "reno") == 0) {
         server_ctx.init_cc = &quicly_cc_reno_init;
@@ -189,8 +190,6 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
         server_ctx.init_cc = &quicly_cc_cubic_init;
     }
 
-    set_iw(iw, server_ctx.transport_params.max_udp_payload_size);
-    
     if (gso) {
         enable_gso();
     }
