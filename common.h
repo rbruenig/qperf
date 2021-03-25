@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-uint32_t iw_cc;
-
 ptls_context_t *get_tlsctx();
 
 struct addrinfo *get_address(const char *host, const char *port);
