@@ -57,7 +57,7 @@ int main(int argc, char** argv)
             break;
         case 1:
             iw = (intptr_t)optarg;
-            if(sscanf(optarg, "%u", &iw) < 0 || iw < 1) {
+            if (sscanf(optarg, "%" SCNu32, &iw) != 1) {
                 fprintf(stderr, "invalid argument passed to --iw\n");
                 exit(1);
             }

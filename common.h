@@ -6,8 +6,6 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-uint32_t iw_cc;
-
 ptls_context_t *get_tlsctx();
 
 struct addrinfo *get_address(const char *host, const char *port);
@@ -55,9 +53,4 @@ static inline uint64_t get_current_pid()
     #endif
 
     return pid;
-}
-
-static void set_iw(int iw, uint64_t max_udp_payload_size)
-{
-    iw_cc = iw * max_udp_payload_size;
 }

@@ -131,14 +131,13 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
     client_ctx.transport_params.max_stream_data.uni = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_local = UINT32_MAX;
     client_ctx.transport_params.max_stream_data.bidi_remote = UINT32_MAX;
+    client_ctx.initcwnd_packets = iw;
 
     if(strcmp(cc, "reno") == 0) {
         client_ctx.init_cc = &quicly_cc_reno_init;
     } else if(strcmp(cc, "cubic") == 0) {
         client_ctx.init_cc = &quicly_cc_cubic_init;
     }
-
-    set_iw(iw, client_ctx.transport_params.max_udp_payload_size);
 
     if (gso) {
         enable_gso();

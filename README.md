@@ -7,14 +7,16 @@ Uses https://github.com/h2o/quicly
 Usage: ./qperf [options]
 
 Options:
-  -c target       run as client and connect to target server
-  -e              measure time for connection establishment and first byte only
-  -g              enable UDP generic segmentation offload
-  -l log-file     file to log tls secrets
-  -p              port to listen on/connect to (default 18080)
-  -s              run as server
-  -t time (s)     run for X seconds (default 10s)
-  -h              print this help
+  -c target             run as client and connect to target server
+  --cc [reno,cubic]     congestion control algorithm to use (default reno)
+  -e                    measure time for connection establishment and first byte only
+  -g                    enable UDP generic segmentation offload
+  --iw initial-window   initial window to use (default 10)
+  -l log-file           file to log tls secrets
+  -p                    port to listen on/connect to (default 18080)
+  -s                    run as server
+  -t time (s)           run for X seconds (default 10s)
+  -h                    print this help
 ```
 
 server
