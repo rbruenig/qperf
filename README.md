@@ -66,3 +66,11 @@ cd build-qperf
 cmake ../qperf
 make
 ```
+
+# TLS
+QUIC requires TLS, so qperf requires TLS certificates when running in server mode. It will look for a "server.crt" and "server.key" file in the current working directory.
+
+You can create these files by creating a self-signed certificate via openssl with the following one-liner:
+```
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -sha256 -days 365 -nodes -subj "/C=US/ST=Oregon/L=Portland/O=Company Name/OU=Org/CN=www.example.com"
+```
