@@ -37,7 +37,7 @@ connection 0 second 8 send window: 1994930 packets sent: 364087 packets lost: 0
 connection 0 second 9 send window: 1779683 packets sent: 374804 packets lost: 80
 connection 0 total packets sent: 3654759 total packets lost: 2922
 ```
-*Note*: The server looks for a TLS certificate and key in the current working dir named "server.crt" and "server.key" respectively. You can use a self signed certificate; the client doesn't validate it.
+*Note*: The server looks for a TLS certificate and key in the current working dir named "server.crt" and "server.key" respectively([See TLS](#TLS)). You can use a self signed certificate; the client doesn't validate it.
 
 
 client
@@ -59,8 +59,14 @@ second 9: 3.02 gbit/s (405314061 bytes received)
 ```
 
 # how to build
+## 1. Install required dependencies 
 ```
-git clone --recurse-submodules git@github.com:rbruenig/qperf.git
+sudo apt update
+sudo apt install git cmake libssl-dev libev-dev g++ -y
+```
+## 2.  
+```
+git clone --recurse-submodules https://github.com/rbruenig/qperf.git
 mkdir build-qperf
 cd build-qperf
 cmake ../qperf
