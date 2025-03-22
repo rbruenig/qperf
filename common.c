@@ -109,15 +109,19 @@ void enable_gso()
 
 bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
 {
-    #define SEND_BATCH_SIZE 100
+    #define SEND_BATCH_SIZE 16
 
     quicly_address_t dest, src;
     struct iovec dgrams[SEND_BATCH_SIZE];
     uint8_t dgrams_buf[SEND_BATCH_SIZE * ctx->transport_params.max_udp_payload_size];
     size_t num_dgrams = SEND_BATCH_SIZE;
+    size_t send_dgrams_c = 0;
 
     while(true) {
+        num_dgrams = SEND_BATCH_SIZE - send_dgrams_c;
         int quicly_res = quicly_send(conn, &dest, &src, dgrams, &num_dgrams, &dgrams_buf, sizeof(dgrams_buf));
+        send_dgrams_c += num_dgrams;
+
         if(quicly_res != 0) {
             if(quicly_res != QUICLY_ERROR_FREE_CONNECTION) {
                 printf("quicly_send failed with code %i\n", quicly_res);
