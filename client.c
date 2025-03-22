@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
-#include <float.h>
 #include <stdbool.h>
 
 #include <quicly/streambuf.h>
@@ -56,7 +55,7 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
     ssize_t bytes_received;
 
     while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
-        for(ssize_t offset = 0; offset < bytes_received; ) {
+        for(size_t offset = 0; offset < bytes_received; ) {
             size_t packet_len = quicly_decode_packet(&client_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
                 break;
@@ -96,11 +95,13 @@ void enqueue_request(quicly_conn_t *conn)
     int ret = quicly_open_stream(conn, &stream, 0);
     assert(ret == 0);
     const char *req = "qperf start sending";
+
+    
     quicly_streambuf_egress_write(stream, req, strlen(req));
     quicly_streambuf_egress_shutdown(stream);
 }
 
-static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, int err,
+static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, quicly_error_t err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
@@ -112,11 +113,12 @@ static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
     } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
         fprintf(stderr, "stateless reset\n");
     } else {
-        fprintf(stderr, "unexpected close:code=%d\n", err);
+        fprintf(stderr, "unexpected close:code=%li\n", err);
     }
 }
 
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
+
 static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
 
 int run_client(const char *port, bool gso, const char *logfile, const char *cc, int iw, const char *host, int runtime_s, bool ttfb_only)
@@ -177,7 +179,7 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
     // start time
     start_time = client_ctx.now->cb(client_ctx.now);
 
-    int ret = quicly_connect(&conn, &client_ctx, host, sa, NULL, &next_cid, resumption_token, 0, 0);
+    int ret = quicly_connect(&conn, &client_ctx, host, sa, NULL, &next_cid, resumption_token, NULL, NULL, NULL);
     assert(ret == 0);
     ++next_cid.master_id;
 

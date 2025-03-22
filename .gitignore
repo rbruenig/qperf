@@ -1,3 +1,5 @@
 *.user
 *.vscode
 build*
+*.cache
+compile_commands.json

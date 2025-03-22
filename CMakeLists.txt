@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.6.0)
 project(qperf VERSION 1.0.0 LANGUAGES C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_subdirectory(extern)
 
 add_executable(qperf main.c

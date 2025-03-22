@@ -7,7 +7,6 @@
 #include <quicly.h>
 #include <quicly/defaults.h>
 #include <unistd.h>
-#include <float.h>
 #include <inttypes.h>
 #include <stdbool.h>
 
@@ -108,7 +107,7 @@ static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct 
     quicly_conn_t *conn = find_conn(sa, salen, packet);
     if(conn == NULL) {
         // new conn
-        int ret = quicly_accept(&conn, &server_ctx, 0, sa, packet, NULL, &next_cid, NULL);
+        int ret = quicly_accept(&conn, &server_ctx, 0, sa, packet, NULL, &next_cid, NULL, NULL);
         if(ret != 0) {
             printf("quicly_accept failed with code %i\n", ret);
             return;
@@ -135,7 +134,7 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
     ssize_t bytes_received;
 
     while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
-        for(ssize_t offset = 0; offset < bytes_received; ) {
+        for(size_t offset = 0; offset < bytes_received; ) {
             size_t packet_len = quicly_decode_packet(&server_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
                 break;
@@ -151,7 +150,7 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
     server_send_pending();
 }
 
-static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, int err,
+static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, quicly_error_t err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
@@ -163,7 +162,7 @@ static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
     } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
         fprintf(stderr, "stateless reset\n");
     } else {
-        fprintf(stderr, "unexpected close:code=%d\n", err);
+        fprintf(stderr, "unexpected close:code=%ld\n", err);
     }
 }
 
