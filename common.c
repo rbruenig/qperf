@@ -109,7 +109,7 @@ void enable_gso()
 
 bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
 {
-    #define SEND_BATCH_SIZE 16
+    #define SEND_BATCH_SIZE 100
 
     quicly_address_t dest, src;
     struct iovec dgrams[SEND_BATCH_SIZE];
