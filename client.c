@@ -9,9 +9,8 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <errno.h>
-#include <float.h>
 #include <stdbool.h>
-
+#include <float.h>
 #include <quicly/streambuf.h>
 
 #include <picotls/../../t/util.h>
@@ -50,20 +49,20 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
 {
     // retrieve data
     uint8_t buf[4096];
-    struct sockaddr sa;
+    struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
     quicly_decoded_packet_t packet;
     ssize_t bytes_received;
 
-    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
-        for(ssize_t offset = 0; offset < bytes_received; ) {
+    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT,(struct sockaddr *) &sa, &salen)) != -1) {
+        for(size_t offset = 0; offset < bytes_received; ) {
             size_t packet_len = quicly_decode_packet(&client_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
                 break;
             }
 
             // handle packet --------------------------------------------------
-            int ret = quicly_receive(conn, NULL, &sa, &packet);
+            int ret = quicly_receive(conn, NULL, (struct sockaddr *) &sa, &packet);
             if(ret != 0 && ret != QUICLY_ERROR_PACKET_IGNORED) {
                 fprintf(stderr, "quicly_receive returned %i\n", ret);
                 exit(1);
@@ -96,11 +95,13 @@ void enqueue_request(quicly_conn_t *conn)
     int ret = quicly_open_stream(conn, &stream, 0);
     assert(ret == 0);
     const char *req = "qperf start sending";
+
+    
     quicly_streambuf_egress_write(stream, req, strlen(req));
     quicly_streambuf_egress_shutdown(stream);
 }
 
-static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, int err,
+static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t *conn, quicly_error_t err,
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
@@ -112,11 +113,12 @@ static void client_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
     } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
         fprintf(stderr, "stateless reset\n");
     } else {
-        fprintf(stderr, "unexpected close:code=%d\n", err);
+        fprintf(stderr, "unexpected close:code=%li\n", err);
     }
 }
 
 static quicly_stream_open_t stream_open = {&client_on_stream_open};
+
 static quicly_closed_by_remote_t closed_by_remote = {&client_on_conn_close};
 
 int run_client(const char *port, bool gso, const char *logfile, const char *cc, int iw, const char *host, int runtime_s, bool ttfb_only)
@@ -147,22 +149,40 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
 
     struct sockaddr_storage sas;
     socklen_t salen;
-    if(resolve_address((void*)&sas, &salen, host, port, AF_INET, SOCK_DGRAM, IPPROTO_UDP) != 0) {
+    if (resolve_address((void *)&sas, &salen, host, port, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP) != 0) {
         exit(-1);
     }
-
-    struct sockaddr *sa = (void*)&sas;
-
+    
+    struct sockaddr *sa = (struct sockaddr *)&sas;
+    
     client_socket = socket(sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-    if(client_socket == -1) {
+    if (client_socket == -1) {
         perror("socket(2) failed");
         return 1;
     }
-
-    struct sockaddr_in local = {0};
-    local.sin_family = AF_INET;
-    if (bind(client_socket, (void *)&local, sizeof(local)) != 0) {
-        perror("bind(2) failed");
+    
+    if (sa->sa_family == AF_INET) {
+        struct sockaddr_in local;
+        memset(&local, 0, sizeof(local));
+        local.sin_family = AF_INET;
+        local.sin_addr.s_addr = INADDR_ANY;
+        local.sin_port = 0; // Let the OS choose the port
+        if (bind(client_socket, (struct sockaddr *)&local, sizeof(local)) != 0) {
+            perror("bind(2) failed");
+            return 1;
+        }
+    } else if (sa->sa_family == AF_INET6) {
+        struct sockaddr_in6 local;
+        memset(&local, 0, sizeof(local));
+        local.sin6_family = AF_INET6;
+        local.sin6_addr = in6addr_any;
+        local.sin6_port = 0; // Let the OS choose the port
+        if (bind(client_socket, (struct sockaddr *)&local, sizeof(local)) != 0) {
+            perror("bind(2) failed");
+            return 1;
+        }
+    } else {
+        fprintf(stderr, "Unknown address family\n");
         return 1;
     }
 
@@ -177,7 +197,7 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
     // start time
     start_time = client_ctx.now->cb(client_ctx.now);
 
-    int ret = quicly_connect(&conn, &client_ctx, host, sa, NULL, &next_cid, resumption_token, 0, 0);
+    int ret = quicly_connect(&conn, &client_ctx, host, sa, NULL, &next_cid, resumption_token, NULL, NULL, NULL);
     assert(ret == 0);
     ++next_cid.master_id;
 

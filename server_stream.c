@@ -1,6 +1,4 @@
 #include "server_stream.h"
-#include "common.h"
-#include "server.h"
 
 #include <ev.h>
 #include <stdbool.h>
@@ -40,7 +38,7 @@ static void server_report_cb(EV_P, ev_timer *w, int revents)
     print_report((server_stream*)w->data);
 }
 
-static void server_stream_destroy(quicly_stream_t *stream, int err)
+static void server_stream_destroy(quicly_stream_t *stream, quicly_error_t err)
 {
     server_stream *s = (server_stream*)stream->data;
     print_report(s);
@@ -72,10 +70,10 @@ static void server_stream_send_emit(quicly_stream_t *stream, size_t off, void *d
     memset(dst, 0x58, *len);
 }
 
-static void server_stream_send_stop(quicly_stream_t *stream, int err)
+static void server_stream_send_stop(quicly_stream_t *stream, quicly_error_t err)
 {
     printf("server_stream_send_stop stream-id=%li\n", stream->stream_id);
-    fprintf(stderr, "received STOP_SENDING: %i\n", err);
+    fprintf(stderr, "received STOP_SENDING: %li\n", err);
 }
 
 static void server_stream_receive(quicly_stream_t *stream, size_t off, const void *src, size_t len)
@@ -90,10 +88,10 @@ static void server_stream_receive(quicly_stream_t *stream, size_t off, const voi
     }
 }
 
-static void server_stream_receive_reset(quicly_stream_t *stream, int err)
+static void server_stream_receive_reset(quicly_stream_t *stream, quicly_error_t err)
 {
     printf("server_stream_receive_reset stream-id=%li\n", stream->stream_id);
-    fprintf(stderr, "received RESET_STREAM: %i\n", err);
+    fprintf(stderr, "received RESET_STREAM: %li\n", err);
 }
 
 static const quicly_stream_callbacks_t server_stream_callbacks = {
@@ -105,7 +103,7 @@ static const quicly_stream_callbacks_t server_stream_callbacks = {
     &server_stream_receive_reset
 };
 
-int server_on_stream_open(quicly_stream_open_t *self, quicly_stream_t *stream)
+quicly_error_t server_on_stream_open(quicly_stream_open_t *self, quicly_stream_t *stream)
 {
     server_stream *s = malloc(sizeof(server_stream));
     s->target_offset = UINT64_MAX;

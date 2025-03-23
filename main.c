@@ -19,7 +19,7 @@ static void usage(const char *cmd)
             "  --iw initial-window  initial window to use (default 10)\n"
             "  -l log-file          file to log tls secrets\n"
             "  -p                   port to listen on/connect to (default 18080)\n"
-            "  -s                   run as server\n"
+            "  -s  address          listen as server on address\n"
             "  -t time (s)          run for X seconds (default 10s)\n"
             "  -h                   print this help\n"
             "\n",
@@ -38,6 +38,7 @@ int main(int argc, char** argv)
     int port = 18080;
     bool server_mode = false;
     const char *host = NULL;
+    const char *address = NULL;
     int runtime_s = 10;
     int ch;
     bool ttfb_only = false;
@@ -46,7 +47,7 @@ int main(int argc, char** argv)
     const char *cc = "reno";
     int iw = 10;
 
-    while ((ch = getopt_long(argc, argv, "c:egl:p:st:h", long_options, NULL)) != -1) {
+    while ((ch = getopt_long(argc, argv, "c:egl:p:s:t:h", long_options, NULL)) != -1) {
         switch (ch) {
         case 0:
             if(strcmp(optarg, "reno") != 0 && strcmp(optarg, "cubic") != 0) {
@@ -81,13 +82,13 @@ int main(int argc, char** argv)
             logfile = optarg;
             break;
         case 'p':
-            port = (intptr_t)optarg;
             if(sscanf(optarg, "%u", &port) < 0 || port > 65535) {
                 fprintf(stderr, "invalid argument passed to -p\n");
                 exit(1);
             }
             break;
         case 's':
+            address = optarg;
             server_mode = true;
             break;
         case 't':
@@ -112,9 +113,10 @@ int main(int argc, char** argv)
         exit(1);
     }
 
+
     char port_char[16];
     sprintf(port_char, "%d", port);
     return server_mode ?
-                run_server(port_char, gso, logfile, cc, iw, "server.crt", "server.key") :
+                run_server(address, port_char, gso, logfile, cc, iw, "server.crt", "server.key") :
                 run_client(port_char, gso, logfile, cc, iw, host, runtime_s, ttfb_only);
 }

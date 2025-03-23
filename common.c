@@ -22,13 +22,18 @@ struct addrinfo *get_address(const char *host, const char *port)
     struct addrinfo hints;
     struct addrinfo *result;
 
+    printf("resolving %s:%s\n", host, port);
+
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;                    /* Allow IPv4 or IPv6 */
+
+    hints.ai_family = AF_UNSPEC; // Let getaddrinfo decide if it's a hostname.
     hints.ai_socktype = SOCK_DGRAM;                 /* Datagram socket */
     hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV | AI_PASSIVE;
     hints.ai_protocol = IPPROTO_UDP;
 
-    if(getaddrinfo(host, port, &hints, &result) != 0) {
+    int s = getaddrinfo(host, port, &hints, &result);
+    if(s != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
         return NULL;
     } else {
         return result;
@@ -113,11 +118,15 @@ bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn)
 
     quicly_address_t dest, src;
     struct iovec dgrams[SEND_BATCH_SIZE];
-    uint8_t dgrams_buf[SEND_BATCH_SIZE * ctx->transport_params.max_udp_payload_size];
+    uint8_t dgrams_buf[PTLS_ELEMENTSOF(dgrams) * ctx->transport_params.max_udp_payload_size];
     size_t num_dgrams = SEND_BATCH_SIZE;
+    size_t send_dgrams_c = 0;
 
     while(true) {
+        num_dgrams = PTLS_ELEMENTSOF(dgrams);
         int quicly_res = quicly_send(conn, &dest, &src, dgrams, &num_dgrams, &dgrams_buf, sizeof(dgrams_buf));
+
+
         if(quicly_res != 0) {
             if(quicly_res != QUICLY_ERROR_FREE_CONNECTION) {
                 printf("quicly_send failed with code %i\n", quicly_res);
