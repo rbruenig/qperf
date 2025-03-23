@@ -22,13 +22,18 @@ struct addrinfo *get_address(const char *host, const char *port)
     struct addrinfo hints;
     struct addrinfo *result;
 
+    printf("resolving %s:%s\n", host, port);
+
     memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_INET;                    /* Allow IPv4 or IPv6 */
+
+    hints.ai_family = AF_UNSPEC; // Let getaddrinfo decide if it's a hostname.
     hints.ai_socktype = SOCK_DGRAM;                 /* Datagram socket */
     hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV | AI_PASSIVE;
     hints.ai_protocol = IPPROTO_UDP;
 
-    if(getaddrinfo(host, port, &hints, &result) != 0) {
+    int s = getaddrinfo(host, port, &hints, &result);
+    if(s != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
         return NULL;
     } else {
         return result;

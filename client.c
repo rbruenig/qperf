@@ -49,12 +49,12 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
 {
     // retrieve data
     uint8_t buf[4096];
-    struct sockaddr sa;
+    struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
     quicly_decoded_packet_t packet;
     ssize_t bytes_received;
 
-    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
+    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT,(struct sockaddr *) &sa, &salen)) != -1) {
         for(size_t offset = 0; offset < bytes_received; ) {
             size_t packet_len = quicly_decode_packet(&client_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
@@ -62,7 +62,7 @@ void client_read_cb(EV_P_ ev_io *w, int revents)
             }
 
             // handle packet --------------------------------------------------
-            int ret = quicly_receive(conn, NULL, &sa, &packet);
+            int ret = quicly_receive(conn, NULL, (struct sockaddr *) &sa, &packet);
             if(ret != 0 && ret != QUICLY_ERROR_PACKET_IGNORED) {
                 fprintf(stderr, "quicly_receive returned %i\n", ret);
                 exit(1);
@@ -149,22 +149,40 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
 
     struct sockaddr_storage sas;
     socklen_t salen;
-    if(resolve_address((void*)&sas, &salen, host, port, AF_INET, SOCK_DGRAM, IPPROTO_UDP) != 0) {
+    if (resolve_address((void *)&sas, &salen, host, port, AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP) != 0) {
         exit(-1);
     }
-
-    struct sockaddr *sa = (void*)&sas;
-
+    
+    struct sockaddr *sa = (struct sockaddr *)&sas;
+    
     client_socket = socket(sa->sa_family, SOCK_DGRAM, IPPROTO_UDP);
-    if(client_socket == -1) {
+    if (client_socket == -1) {
         perror("socket(2) failed");
         return 1;
     }
-
-    struct sockaddr_in local = {0};
-    local.sin_family = AF_INET;
-    if (bind(client_socket, (void *)&local, sizeof(local)) != 0) {
-        perror("bind(2) failed");
+    
+    if (sa->sa_family == AF_INET) {
+        struct sockaddr_in local;
+        memset(&local, 0, sizeof(local));
+        local.sin_family = AF_INET;
+        local.sin_addr.s_addr = INADDR_ANY;
+        local.sin_port = 0; // Let the OS choose the port
+        if (bind(client_socket, (struct sockaddr *)&local, sizeof(local)) != 0) {
+            perror("bind(2) failed");
+            return 1;
+        }
+    } else if (sa->sa_family == AF_INET6) {
+        struct sockaddr_in6 local;
+        memset(&local, 0, sizeof(local));
+        local.sin6_family = AF_INET6;
+        local.sin6_addr = in6addr_any;
+        local.sin6_port = 0; // Let the OS choose the port
+        if (bind(client_socket, (struct sockaddr *)&local, sizeof(local)) != 0) {
+            perror("bind(2) failed");
+            return 1;
+        }
+    } else {
+        fprintf(stderr, "Unknown address family\n");
         return 1;
     }
 

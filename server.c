@@ -49,10 +49,10 @@ static int udp_listen(struct addrinfo *addr)
     return -1;
 }
 
-static inline quicly_conn_t *find_conn(struct sockaddr *sa, socklen_t salen, quicly_decoded_packet_t *packet)
+static inline quicly_conn_t *find_conn(struct sockaddr_storage *sa, socklen_t salen, quicly_decoded_packet_t *packet)
 {
     for(size_t i = 0; i < num_conns; ++i) {
-        if(quicly_is_destination(conns[i], NULL, sa, packet)) {
+        if(quicly_is_destination(conns[i], NULL, (struct sockaddr *) sa, packet)) {
             return conns[i];
         }
     }
@@ -75,7 +75,11 @@ static size_t remove_conn(size_t i)
     quicly_free(conns[i]);
     memmove(conns + i, conns + i + 1, (num_conns - i - 1) * sizeof(quicly_conn_t*));
     --num_conns;
-    return i - 1;
+
+    if (i > 0) {
+        return i - 1;
+    }
+    return 0;
 }
 
 static void server_timeout_cb(EV_P_ ev_timer *w, int revents);
@@ -102,12 +106,12 @@ static void server_timeout_cb(EV_P_ ev_timer *w, int revents)
     server_send_pending();
 }
 
-static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct sockaddr *sa, socklen_t salen)
+static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct sockaddr_storage *sa, socklen_t salen)
 {
     quicly_conn_t *conn = find_conn(sa, salen, packet);
     if(conn == NULL) {
         // new conn
-        int ret = quicly_accept(&conn, &server_ctx, 0, sa, packet, NULL, &next_cid, NULL, NULL);
+        int ret = quicly_accept(&conn, &server_ctx, 0, (struct sockaddr *) sa, packet, NULL, &next_cid, NULL, NULL);
         if(ret != 0) {
             printf("quicly_accept failed with code %i\n", ret);
             return;
@@ -115,8 +119,9 @@ static inline void server_handle_packet(quicly_decoded_packet_t *packet, struct 
         ++next_cid.master_id;
         printf("got new connection\n");
         append_conn(conn);
+
     } else {
-        int ret = quicly_receive(conn, NULL, sa, packet);
+        int ret = quicly_receive(conn, NULL, (struct sockaddr *) sa, packet);
         if(ret != 0 && ret != QUICLY_ERROR_PACKET_IGNORED) {
             fprintf(stderr, "quicly_receive returned %i\n", ret);
             exit(1);
@@ -128,12 +133,12 @@ static void server_read_cb(EV_P_ ev_io *w, int revents)
 {
     // retrieve data
     uint8_t buf[4096];
-    struct sockaddr sa;
+    struct sockaddr_storage sa;
     socklen_t salen = sizeof(sa);
     quicly_decoded_packet_t packet;
     ssize_t bytes_received;
 
-    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, &sa, &salen)) != -1) {
+    while((bytes_received = recvfrom(w->fd, buf, sizeof(buf), MSG_DONTWAIT, (struct sockaddr *)&sa, &salen)) != -1) {
         for(size_t offset = 0; offset < bytes_received; ) {
             size_t packet_len = quicly_decode_packet(&server_ctx, &packet, buf, bytes_received, &offset);
             if(packet_len == SIZE_MAX) {
@@ -154,10 +159,10 @@ static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
                                  uint64_t frame_type, const char *reason, size_t reason_len)
 {
     if (QUICLY_ERROR_IS_QUIC_TRANSPORT(err)) {
-        fprintf(stderr, "transport close:code=0x%" PRIx16 ";frame=%" PRIu64 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err),
+        fprintf(stderr, "transport close:code=0x%lx;frame=%" PRIu64 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err),
                 frame_type, (int)reason_len, reason);
     } else if (QUICLY_ERROR_IS_QUIC_APPLICATION(err)) {
-        fprintf(stderr, "application close:code=0x%" PRIx16 ";reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err), (int)reason_len,
+        fprintf(stderr, "application close:code=0x%lx;reason=%.*s\n", QUICLY_ERROR_GET_ERROR_CODE(err), (int)reason_len,
                 reason);
     } else if (err == QUICLY_ERROR_RECEIVED_STATELESS_RESET) {
         fprintf(stderr, "stateless reset\n");
@@ -169,7 +174,7 @@ static void server_on_conn_close(quicly_closed_by_remote_t *self, quicly_conn_t 
 static quicly_stream_open_t stream_open = {&server_on_stream_open};
 static quicly_closed_by_remote_t closed_by_remote = {&server_on_conn_close};
 
-int run_server(const char *port, bool gso, const char *logfile, const char *cc, int iw, const char *cert, const char *key)
+int run_server(const char* address, const char *port, bool gso, const char *logfile, const char *cc, int iw, const char *cert, const char *key)
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
@@ -198,15 +203,16 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
 
     struct ev_loop *loop = EV_DEFAULT;
 
-    struct addrinfo *addr = get_address("0.0.0.0", port);
-    if(addr == NULL) {
+    struct addrinfo *addr = get_address(address, port);
+    if (addr == NULL) {
         printf("failed get addrinfo for port %s\n", port);
         return -1;
     }
-
+    
     server_socket = udp_listen(addr);
     freeaddrinfo(addr);
-    if(server_socket == -1) {
+    
+    if (server_socket == -1) {
         printf("failed to listen on port %s\n", port);
         return 1;
     }
@@ -216,7 +222,7 @@ int run_server(const char *port, bool gso, const char *logfile, const char *cc, 
         setup_log_event(server_ctx.tls, logfile);
     }
 
-    printf("starting server with pid %" PRIu64 ", port %s, cc %s, iw %i\n", get_current_pid(), port, cc, iw);
+    printf("starting server with pid %" PRIu64 ",address %s, port %s, cc %s, iw %i\n", get_current_pid(),address, port, cc, iw);
 
     ev_io socket_watcher;
     ev_io_init(&socket_watcher, &server_read_cb, server_socket, EV_READ);
