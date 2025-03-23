@@ -1,6 +1,6 @@
 #include "client_stream.h"
 #include "client.h"
-
+#include "common.h"
 #include <ev.h>
 #include <stdbool.h>
 #include <quicly/streambuf.h>

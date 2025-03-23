@@ -10,7 +10,7 @@
 #include <netdb.h>
 #include <errno.h>
 #include <stdbool.h>
-
+#include <float.h>
 #include <quicly/streambuf.h>
 
 #include <picotls/../../t/util.h>
