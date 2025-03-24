@@ -3,3 +3,5 @@
 build*
 *.cache
 compile_commands.json
+test_client.sh
+test_server.sh

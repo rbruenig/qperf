@@ -1,0 +1,1 @@
+double *getcpuusage(void);

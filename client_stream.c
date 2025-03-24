@@ -1,9 +1,17 @@
+
+#define _GNU_SOURCE
 #include "client_stream.h"
 #include "client.h"
 #include "common.h"
 #include <ev.h>
 #include <stdbool.h>
 #include <quicly/streambuf.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sched.h>
+#include "cpu-usage.h"
+
+
 
 static int current_second = 0;
 static uint64_t bytes_received = 0;
@@ -28,8 +36,15 @@ static void report_cb(EV_P_ ev_timer *w, int revents)
 {
     char size_str[100];
     format_size(size_str, bytes_received);
+    double *percent = getcpuusage();
 
-    printf("second %i: %s (%lu bytes received)\n", current_second, size_str, bytes_received);
+    int cpu_core = sched_getcpu();
+    if (cpu_core == -1) {
+        perror("sched_getcpu");
+        exit(1);
+    }
+
+    printf("second %i: %s, cpu %d: %.2f%%\n", current_second, size_str, cpu_core, percent[cpu_core]);
     fflush(stdout);
     ++current_second;
     bytes_received = 0;

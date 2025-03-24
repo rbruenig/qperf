@@ -7,56 +7,67 @@ Uses https://github.com/h2o/quicly
 Usage: ./qperf [options]
 
 Options:
-  -c target             run as client and connect to target server
-  --cc [reno,cubic]     congestion control algorithm to use (default reno)
-  -e                    measure time for connection establishment and first byte only
-  -g                    enable UDP generic segmentation offload
-  --iw initial-window   initial window to use (default 10)
-  -l log-file           file to log tls secrets
-  -p                    port to listen on/connect to (default 18080)
-  -s                    run as server
-  -t time (s)           run for X seconds (default 10s)
-  -h                    print this help
+  -c target            run as client and connect to target server
+  --cc [reno,cubic]    congestion control algorithm to use (default reno)
+  -e                   measure time for connection establishment and first byte only
+  -g                   enable UDP generic segmentation offload
+  --iw initial-window  initial window to use (default 10)
+  -l log-file          file to log tls secrets
+  -p                   port to listen on/connect to (default 18080)
+  -s  address          listen as server on address
+  -t time (s)          run for X seconds (default 10s)
+  -n num_cores         number of cores to use (default nproc)
+  -h                   print this help
 ```
 
-server
+
+#### client
 ```
-./qperf -s
-starting server with pid 5624 on port 18080
+./qperf -c 2a01:4f8:1c1b:fd7a::1 -p 18000 -n 1
+starting client with host 2a01:4f8:1c1b:fd7a::1, port 18000, runtime 10s, cc reno, iw 10
+connection establishment time: 16ms
+time to first byte: 16ms
+second 0: 1.158 gbit/s, cpu 0: 21.65%
+second 1: 1.161 gbit/s, cpu 2: 50.00%
+second 2: 1.205 gbit/s, cpu 0: 32.29%
+second 3: 1.162 gbit/s, cpu 2: 52.87%
+second 4: 1.258 gbit/s, cpu 1: 34.04%
+second 5: 1.387 gbit/s, cpu 1: 50.00%
+second 6: 1.393 gbit/s, cpu 2: 15.96%
+second 7: 1.366 gbit/s, cpu 0: 17.35%
+second 8: 1.195 gbit/s, cpu 0: 46.67%
+second 9: 1.226 gbit/s, cpu 1: 15.62%
+connection closed
+```
+
+
+#### server
+
+```
+./qperf -s :: -p 18000
+starting server with pid 15291,address ::, port 18000, cc reno, iw 10
+starting server with pid 15293,address ::, port 18002, cc reno, iw 10
+starting server with pid 15292,address ::, port 18001, cc reno, iw 10
+starting server with pid 15294,address ::, port 18003, cc reno, iw 10
 got new connection
 request received, sending data
-connection 0 second 0 send window: 1112923 packets sent: 364792 packets lost: 373
-connection 0 second 1 send window: 1238055 packets sent: 377515 packets lost: 123
-connection 0 second 2 send window: 583352 packets sent: 355482 packets lost: 862
-connection 0 second 3 send window: 275563 packets sent: 367538 packets lost: 607
-connection 0 second 4 send window: 1100261 packets sent: 366005 packets lost: 20
-connection 0 second 5 send window: 633010 packets sent: 356021 packets lost: 857
-connection 0 second 6 send window: 1266610 packets sent: 367866 packets lost: 0
-connection 0 second 7 send window: 1668530 packets sent: 360649 packets lost: 0
-connection 0 second 8 send window: 1994930 packets sent: 364087 packets lost: 0
-connection 0 second 9 send window: 1779683 packets sent: 374804 packets lost: 80
-connection 0 total packets sent: 3654759 total packets lost: 2922
+connection 0 second 0 send window: 622682 packets sent: 133403 packets lost: 2289, cpu 3: 1.99%
+connection 0 second 1 send window: 716581 packets sent: 126095 packets lost: 23, cpu 3: 98.99%
+connection 0 second 2 send window: 652943 packets sent: 131597 packets lost: 37, cpu 3: 97.98%
+connection 0 second 3 send window: 563577 packets sent: 138904 packets lost: 35, cpu 3: 96.97%
+connection 0 second 4 send window: 637191 packets sent: 127947 packets lost: 43, cpu 3: 100.00%
+connection 0 second 5 send window: 727889 packets sent: 119218 packets lost: 13, cpu 3: 99.00%
+connection 0 second 6 send window: 577401 packets sent: 111255 packets lost: 62, cpu 2: 53.33%
+connection 0 second 7 send window: 807801 packets sent: 97623 packets lost: 0, cpu 2: 100.00%
+connection 0 second 8 send window: 976761 packets sent: 92145 packets lost: 0, cpu 3: 53.54%
+connection 0 second 9 send window: 890324 packets sent: 104484 packets lost: 11, cpu 3: 100.00%
+transport close:code=0x0;frame=0;reason=
+connection 0 second 10 send window: 891604 packets sent: 0 packets lost: 0, cpu 3: -nan%
+connection 0 total packets sent: 1182671 total packets lost: 2513
+connection closed
 ```
 *Note*: The server looks for a TLS certificate and key in the current working dir named "server.crt" and "server.key" respectively([See TLS](#TLS)). You can use a self signed certificate; the client doesn't validate it.
 
-
-client
-```
-./qperf -c 127.0.0.1
-running client with host=127.0.0.1 and runtime=10s
-connection establishment time: 6ms
-time to first byte: 7ms
-second 0: 3.144 gbit/s (422030372 bytes received)
-second 1: 3.444 gbit/s (462189378 bytes received)
-second 2: 3.184 gbit/s (427337822 bytes received)
-second 3: 3.333 gbit/s (447304096 bytes received)
-second 4: 2.996 gbit/s (402100242 bytes received)
-second 5: 3.274 gbit/s (439462608 bytes received)
-second 6: 3.083 gbit/s (413746021 bytes received)
-second 7: 3.336 gbit/s (447686682 bytes received)
-second 8: 3.034 gbit/s (407235597 bytes received)
-second 9: 3.02 gbit/s (405314061 bytes received)
-```
 
 # how to build
 ## 1. Install required dependencies 

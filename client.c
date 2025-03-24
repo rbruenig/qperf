@@ -1,6 +1,7 @@
 #include "client.h"
 #include "client_stream.h"
 #include "common.h"
+#include "cpu-usage.h"
 
 #include <ev.h>
 #include <stdio.h>
@@ -12,6 +13,7 @@
 #include <stdbool.h>
 #include <float.h>
 #include <quicly/streambuf.h>
+
 
 #include <picotls/../../t/util.h>
 
@@ -125,6 +127,7 @@ int run_client(const char *port, bool gso, const char *logfile, const char *cc, 
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
+    getcpuusage();
 
     client_ctx = quicly_spec_context;
     client_ctx.tls = get_tlsctx();

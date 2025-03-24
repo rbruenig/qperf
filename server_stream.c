@@ -1,5 +1,8 @@
+#define _GNU_SOURCE
 #include "server_stream.h"
+#include "cpu-usage.h"
 
+#include <sched.h>
 #include <ev.h>
 #include <stdbool.h>
 #include <quicly/streambuf.h>
@@ -28,7 +31,16 @@ static void print_report(server_stream *s)
     s->report_num_packets_lost = stats.num_packets.lost - s->total_num_packets_lost;
     s->total_num_packets_sent = stats.num_packets.sent;
     s->total_num_packets_lost = stats.num_packets.lost;
-    printf("connection %i second %i send window: %"PRIu32" packets sent: %"PRIu64" packets lost: %"PRIu64"\n", s->report_id, s->report_second, stats.cc.cwnd, s->report_num_packets_sent, s->report_num_packets_lost);
+    double *percent = getcpuusage();
+
+    int cpu_core = sched_getcpu();
+    if (cpu_core == -1) {
+        perror("sched_getcpu");
+        exit(1);
+    }
+
+    
+    printf("connection %i second %i send window: %"PRIu32" packets sent: %"PRIu64" packets lost: %"PRIu64", cpu %d: %.2f%%\n", s->report_id, s->report_second, stats.cc.cwnd, s->report_num_packets_sent, s->report_num_packets_lost, cpu_core, percent[cpu_core]);
     fflush(stdout);
     ++s->report_second;
 }
