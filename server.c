@@ -1,6 +1,7 @@
 ﻿#include "server.h"
 #include "server_stream.h"
 #include "common.h"
+#include "cpu-usage.h"
 
 #include <stdio.h>
 #include <ev.h>
@@ -48,6 +49,7 @@ static int udp_listen(struct addrinfo *addr)
 
     return -1;
 }
+
 
 static inline quicly_conn_t *find_conn(struct sockaddr_storage *sa, socklen_t salen, quicly_decoded_packet_t *packet)
 {
@@ -178,6 +180,7 @@ int run_server(const char* address, const char *port, bool gso, const char *logf
 {
     setup_session_cache(get_tlsctx());
     quicly_amend_ptls_context(get_tlsctx());
+    getcpuusage();
 
     server_ctx = quicly_spec_context;
     server_ctx.tls = get_tlsctx();

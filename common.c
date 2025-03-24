@@ -1,5 +1,4 @@
 #include "common.h"
-
 #include <sys/socket.h>
 #include <netinet/udp.h>
 #include <netdb.h>
@@ -21,8 +20,6 @@ struct addrinfo *get_address(const char *host, const char *port)
 {
     struct addrinfo hints;
     struct addrinfo *result;
-
-    printf("resolving %s:%s\n", host, port);
 
     memset(&hints, 0, sizeof(struct addrinfo));
 

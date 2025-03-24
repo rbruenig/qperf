@@ -6,13 +6,14 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#define BREAKPOINT printf("%s() at %s:%d\n", __func__, __FILE__, __LINE__); __asm__("int3; nop" ::: "memory");
+
 ptls_context_t *get_tlsctx();
 
 struct addrinfo *get_address(const char *host, const char *port);
 void enable_gso();
 bool send_pending(quicly_context_t *ctx, int fd, quicly_conn_t *conn);
 void print_escaped(const char *src, size_t len);
-
 
 static inline int64_t min_int64(int64_t a, int64_t b)
 {
@@ -44,7 +45,7 @@ static inline int64_t clamp_int64(int64_t val, int64_t min, int64_t max)
 
 static inline uint64_t get_current_pid()
 {
-    uint64_t pid;
+    uint64_t pid;   
 
     #ifdef __APPLE__
         pthread_threadid_np(NULL, &pid);
@@ -54,3 +55,4 @@ static inline uint64_t get_current_pid()
 
     return pid;
 }
+
